@@ -39,7 +39,6 @@ async function getOrders() {
     const pages = Math.round(initalData.total / initalData.pageSize);
 
     orders = initalData.orders;
-    console.log(pages)
 
     for (let i = 1; i < pages; i++) {
       const data = await fetcher(baseUrl + 'page=' + (i + 1));
@@ -139,8 +138,10 @@ function extractAndFormatPhoneNumbers(text) {
 
 async function app() {
   if (running === true) {
+    console.log('already running');
     return;
   }
+  console.log('running');
   running = true;
   const orders = await getOrders();
 
@@ -208,6 +209,7 @@ async function app() {
       });
     }
   }
+  console.log('finished');
   running = false;
 };
 
