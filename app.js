@@ -1,4 +1,6 @@
 import fs from 'fs';
+import { task } from "@ampt/sdk";
+import { data as amptData } from "@ampt/data";
 const dataLocation = './data.json';
 const map = JSON.parse(fs.readFileSync(dataLocation, 'utf8'));
 
@@ -36,7 +38,7 @@ async function getOrders() {
     initalData.pageSize
   ) {
     const total = initalData.total;
-    const pages = Math.round(initalData.total / initalData.pageSize);
+    const pages = Math.ceil(initalData.total / initalData.pageSize);
 
     orders = initalData.orders;
 
@@ -73,14 +75,14 @@ async function getOrders() {
  * @param {string} data.number
  * @param {string} data.family_name
  * @param {string} data.given_name
- * @param {string} data.event_id
  * @param {string} data.orderName
+ * @param {object} map
  */
-async function sendSpeedWaiver(data) {
+async function sendSpeedWaiver(data, map) {
   const args = {
     'family_name': data.family_name,
-    'given_name': data.given_name,
-    'event_id': data.event_id,
+    'given_name': 'Guest of ' + data.given_name,
+    'event_id': 'dc0844bb-987f-424c-abaf-839d2da54d9d',
     'send_notification_via': 'sms',
     'sms_number': data.number,
     'meta': {'qrCodeId': data.orderName},
@@ -90,15 +92,21 @@ async function sendSpeedWaiver(data) {
     return;
   }
 
+  // do not run if already ran
+  if (args.sms_number in map) {
+    return;
+  }
+
   return fetch('https://api.speedwaiver.com/api/v1/waiver_invitations', {
     headers: {
       'Content-Type': 'application/json',
       'x-tenant-id': '0974dac7-322b-4b97-a71c-a01a4de8c4a9'
     },
     body: JSON.stringify(args)
-  }).then(response => {
-    map[data.id] = true;
+  }).then(async(response) => {
+    map[data.number] = true;
     fs.writeFileSync(dataLocation, JSON.stringify(map));
+    // await amptData.set('map', map);
   }).catch(error => {
     console.error(error);
   });
@@ -143,17 +151,17 @@ async function app() {
   }
   console.log('running');
   running = true;
+
+  // const map = await amptData.get('map') || {};
+
+  console.log(map);
+
   const orders = await getOrders();
 
   const questionId = '654a81d410777575d525c4f4';
 
   for (let i = 0; i < orders.length; i++) {
     const order = orders[i];
-
-    // do not run if already ran
-    if (order._id in map) {
-      continue;
-    }
 
     let mobileNumbers = null;
     let mobileNumber = null;
@@ -191,8 +199,7 @@ async function app() {
               'family_name': order.lastName,
               'given_name': order.firstName,
               'orderName': order.orderName,
-              'event_id': order.eventId,
-            });
+            }, map);
           }
         }
       }
@@ -205,8 +212,7 @@ async function app() {
         'family_name': order.lastName,
         'given_name': order.firstName,
         'orderName': order.orderName,
-        'event_id': order.eventId,
-      });
+      }, map);
     }
   }
   console.log('finished');
@@ -218,3 +224,10 @@ app();
 
 // run every 10 mins
 setInterval(app, 10 * 60 * 1000);
+
+// const myTask = task('app', (event) => {
+//   app();
+// });
+
+// myTask.every('1 minute');
+

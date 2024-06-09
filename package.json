@@ -1,4 +1,15 @@
 {
-  "dependencies": {},
-  "type": "module"
+  "dependencies": {
+    "@ampt/cli": "^1.1.15",
+    "@ampt/data": "^1.0.23",
+    "@ampt/sdk": "^1.0.16"
+  },
+  "type": "module",
+  "ampt": {
+    "org": "evansmalley2844802",
+    "app": "pikes-peak"
+  },
+  "scripts": {
+    "ampt:app": "node app.js"
+  }
 }
